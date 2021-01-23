@@ -1,14 +1,20 @@
 import React from 'react';
-import { BrowserRouter as Router,Route, Switch,Link} from 'react-router-dom';
-
-//importing the required components
+import { BrowserRouter as Router,Route, Switch} from 'react-router-dom';
+//importing services
+import {userService} from '../src/components/users/user-service'
+//importing middleware
+import PrivateRoute from './components/middleware/PrivateRoute';
 import {history} from './components/middleware/history';
-import PrivateRoute from './components/middleware/PrivateRoute'
-import home from './components/home';
-import holidays from './components/holidays';
+//importing components 
+import Nav from '../src/components/Nav';
+import LoginPage from './components/users/login';
+import RegisterPage from './components/users/register';
+import AdminPage from './components/Admin/Admin';
 import about from './components/about';
-import login from './components/users/login';
-import register from './components/users/register';
+import holidays from './components/holidays';
+import Home from './components/users/home';
+import AdminAttUpdate from './components/Admin/AdminAttUpdate';
+
 
 class  App extends React.Component {
     constructor(props) {
@@ -16,48 +22,48 @@ class  App extends React.Component {
 
         this.state = {
             currentUser: null,
-            isAdmin: false
+            isAdmin: false,
+            isLogged: false
         };
     }
-    componentDidMount(){
-        if(localStorage.getItem('user')){
-            this.setState({
-                currentUser:localStorage.getItem('user'),
-            })
-        }
+    componentDidMount() {
+        userService.currentUser.subscribe(x => this.setState({
+            currentUser: x,
+            isAdmin: x && x.role ==="Admin",
+            isLogged: x != null
+        }));
     }
-    logout(){
-        localStorage.removeItem('user');
-        history.push('/'); 
-        window.location.reload(false);   
+
+    logout() {
+        userService.logout();
+        history.push('/login');
     }
+
+
     render(){
+
+    const isLogged = this.state.isLogged;
     return (
-        <Router history={history}>
-            <div className="App">
-                <nav className="nav-wrapper blue darken-3">
-                    <div className="container">
-                        <a href="/" className="brand-logo">Tsukiyomi</a>
-                        <ul id="nav-mobile" className="right hide-on-med-and-down">
-                            <li>{this.state.isAdmin && <Link to="/admin">Admin</Link>}</li>
-                            <li><Link to="/holidays">Holidays</Link></li>
-                            <li><a href="/about">About</a></li>
-                            <li>{this.state.currentUser == null && <Link to="/register">Register</Link>}</li>
-                            <li><a onClick={this.logout}>Logout</a></li>
-                        </ul>
+        <div>
+            <Router history = {history}>                     
+                <Nav isAdmin = {this.state.isAdmin} isLogged={isLogged} logout={this.logout}/>
+                <div className="jumbotron">
+                    <div className="container">                      
+                                <Switch>
+                                    <PrivateRoute exact path='/' component={Home} />
+                                    <PrivateRoute exact path='/admin' roles={"Admin"} component={AdminPage} />
+                                    <Route path='/holidays' component={holidays} />
+                                    <Route path='/about' component={about} />
+                                    <Route path='/register' component={RegisterPage} />
+                                    <Route path='/login' component={LoginPage} />
+                                    <PrivateRoute path='/adminAttUpdt'><AdminAttUpdate id={123}/></PrivateRoute>
+                                </Switch>
                     </div>
-                </nav> 
-                <Switch>           
-                    <PrivateRoute exact path='/' component={home} />
-                    <Route path='/holidays' component={holidays} />
-                    <Route path='/about' component={about} />
-                    <Route path='/login' component={login} /> 
-                    <Route path='/register' component={register}/>
-                </Switch>              
-            </div>
-        </Router>
+                </div>
+            </Router>
+        </div>
     );
-  }
+    }
 }
 
 export default App;
